@@ -249,90 +249,8 @@ public class SlottedPage implements Iterable<Object> {
 
 	private static void p(String s) { System.out.println(s);}
 
-	protected int get_next_valid_entry_addr(int current_index) {
-		// Initialize the next address var
-		int next_address = -1;
-		do { // If we reach the end of the indexes
-			if(current_index == this.entryCount()) {
-				return this.startOfDataStorage(); // The last item will
-			}
-			try {
-				next_address = getLocation(current_index++);
-			} catch(Exception e) {}
-		} while(next_address == -1);
-		return next_address;
-		// If its, not, we'll loop through the next indexes and find the next not deleted one
-		// int of = 1;
-		// int next_address = getLocation(current_index - of);
-		// while(next_address == -1)
-		// {
-		// 	try{
-		// 		next_address = getLocation(current_index - (of++));
-		// 	} catch(Exception e) {
-		// 		// FIXME except here
-		// 	}
-		// }
-		// p("Next Address is: " + next_address);
-		// return next_address;
-	}
-	protected int get_previous_valid_entry_addr(int current_index) {
-		int previous_address = -1;
-		do { // If we reach the end of the indexes
-			if(current_index == 0) {
-				return data.length - Integer.BYTES; // The last item will
-			}
-			try {
-				previous_address = getLocation(current_index--);
-			} catch(Exception e) {}
-		} while(previous_address == -1);
-		return previous_address;
-		// if(current_index == this.entryCount()) // if its the last index, 
-		// 	return this.startOfDataStorage();
-
-		// int of = 1;
-		// int next_address = getLocation(current_index + of);
-		// while(next_address == -1)
-		// {
-		// 	try{
-		// 		next_address = getLocation(current_index + (of++));
-		// 	} catch(Exception e) {
-		// 		// FIXME except here
-		// 	}
-		// }
-		// p("Next Address is: " + next_address);
-		// return next_address;
-	}
-	/**
-     * Shift array bytes to the right to fill in removed data
-     * @param arr The array of data
-     * @param read_pointer Further most left address of bytes to start reading
-     * @param write_pointer Further most righ address of bytes to start filling in
-     * @param count How many to do. Must be >= read_pointer
-     */
-    public static void shift_array_bytes_right(byte[] arr, int read_pointer, int write_pointer, int count) throws IOException{
-        if(count > read_pointer)
-           throw new IOException("Count must be greater than the read pointer");
-        for(int i = 0; i < count; i++) {
-            arr[write_pointer] = arr[read_pointer];
-            write_pointer--;
-            read_pointer--;
-        }
-    }
-	public int get_obj_byte_length(Object o) {
-		int len;
-        try {
-            // This is mad ugly, but we want to read the previous object to get its length
-            // Then subtract the start of the next object. This is how much we can compact
-            // p("Previous item is " + (String)get(current_index-1));
-            len = ((toByteArray(o).length));
-            
-        } catch (IOException e) {
-			// TODO Auto-generated catch block
-			len = -1;
-		}
-		return len;
-	}
-	private ArrayList<Integer> removed_indexes = new ArrayList<>();
+	
+	public ArrayList<Integer> removed_indexes = new ArrayList<>();
 	/**
 	 * Reorganizes this {@code SlottedPage} to maximize its free space.
 	 * 
@@ -341,188 +259,19 @@ public class SlottedPage implements Iterable<Object> {
 	 * @throws IndexOutOfBoundsException
 	 */
 	protected void compact() throws IOException {
-		// Okay, so lets say we have the following: 
-		// 5 | 979 | 983 | 990 | 992 | 996 | ...... | Some | String | Is | Here | Yay!
-		// Then we remove String (1)
-		// 5 | 979 | -1 | 990 | 992 | 996 | ...... | Some | String | Is | Here | Yay!
-		// But now, we need to add something super long.. one more than the free space which is
-		// (979 - (sizeof(int) * 6) aka ((headerAddr(addrCount())) - (sizeof(int) * addrCount()+1)
-
-		// We want to move everything to the right. 
-		// Ie, move everything to the left of the -1 to the right, until you hit the address of the next entry
-		
-		// BUT he said not to change the item count.. which is strange
-		// because we want to still index by the same keys. So here's what we'll do
-		// We need to move everything to the right (that's fine), we need to keep 
-		// the same amount of stuff, but what we DO need to do is update the addresses
-		// In each of the indexes! 
-
-		// First, we'll go through and look for each null entry 
-		// And we'll compute the total size we'll save (subtract the previous and the next) - CHECK FOR EDGE CASES
-
-		
-		
-		for(int current_index = 0; current_index < entryCount(); current_index++) {
-			// 5 | 979 | -1 | 990 | 992 | 996 | ...... | Some | String | Is | Here | Yay!
-			// When null_index = 1
-			// Okay, so the 1, aka String is the first thing we need to remove (shift right) and update Some's address
-
-			// We can get the size of the item this way (note that if the previous/next ones are -1 too, we need to add them to the mess)
+		// Go through each index
+		for(int current_index = entryCount()-1; current_index > 0 ; current_index--) {
+			// If we've already compacted it, skip it and make sure it's a removed index
 			if(getLocation(current_index) == -1 && !removed_indexes.contains(current_index))
 			{
-				p("Found deleted entry to compact at index " + current_index);
-				// Okay. At this -1, we want to shift everything from the left to the byte before the next one
-
-				// int next_object_start = get_next_valid_entry_addr(current_index, true);
-				// // Now we want to find out how large the removed object was
-				// int removed_obj_size;
-				// try {
-				// 	// This is mad ugly, but we want to read the previous object to get its length
-				// 	// Then subtract the start of the next object. This is how much we can compact
-				// 	// p("Previous item is " + (String)get(current_index-1));
-				// 	// removed_obj_size = ((next_object_start - (getLocation(current_index-1) + toByteArray(get(current_index-2)).length)));
-				// 	int next_addr_start = getLocation(current_index-1);
-				// 	p("NEXT ADDR:::: " + next_addr_start);
-				// 	int prev_addr = getLocation(current_index+1);
-				// 	p("PREV ADDR:::::" + prev_addr);
-				// 	int prev_obj_size = toByteArray(get(current_index+1)).length;
-				// 	p("PREV OBJ SIZE::::" + prev_obj_size);
-				// 	int prev_obj_end = getLocation(current_index+1) - prev_obj_size;
-				// 	p("PREV OBJ END:::::" + prev_obj_end);
-				// 	removed_obj_size = next_addr_start + prev_obj_end;
-				// } catch(Exception e) { // If soemething happens, do this for now
-				// 	removed_obj_size = 0;
-				// }
-				// p("THe size of the removed object is: " + removed_obj_size + " bytes");
-				 
-				
-				
-
-				// This is the address we want to start copying bytes TO. This will be 1 before the start of the next object
-				// int write_pointer = next_object_start;
-				// p("The address to start writing at is: " + write_pointer);
-				// We want to stop writing when we get to the start of the free space which signifies the end of the data start
-				//int stop_writing = headerSize() + freeSpaceSize(); // This takes us straight to the beginning of OBJECTS
-				//int stop_writing = startOfDataStorage();
-				//int stop_writing = startOfDataStorage() - removed_obj_size;
-				//p("The address to stop writing at is: " + stop_writing);
-				// While the start addr is less than the stop addr
-				// int read_pointer = write_pointer - removed_obj_size;
-
-				// Want to shift starting from where the beginning of the next one is
-
-				//shift_array_bytes_right(data, (next_object_start-1) - removed_obj_size, startOfDataStorage() - removed_obj_size - 3);
-				// p("Start of data storage: " + startOfDataStorage());
-				// byte[] teststr = new byte[removed_obj_size];
-				// System.arraycopy(data, write_pointer, teststr, 0, removed_obj_size);
-				// Object oo;
-				// try {
-				// int removed_address = next_object_start - removed_obj_size;
-				//  oo = new ObjectInputStream(new ByteArrayInputStream(teststr, 0, teststr.length-1)).readObject();
-				// } catch (Exception e) {
-				// 	// TODO: handle exception
-				// 	oo = null;
-				// }
-				// p("This is what we're saying is the object:: " + oo);
-				// while(read_pointer != startOfDataStorage()) {
-				// 	// Copy the byte at the start index - the removed obj size to the start index
-				// 	data[write_pointer] = data[read_pointer];
-				// 	//p("Writing " + data[read_pointer] + " at " + read_pointer + " to " + data[write_pointer] + " at " + write_pointer);
-				// 	data[read_pointer] = Byte.parseByte("-99");
-				// 	data[write_pointer] = Byte.parseByte("-69");
-				// 	write_pointer--;
-				// 	read_pointer--;
-				// }
-
-				
-				// First thing lets do is calculate the read pointer. This is going to be the end of the previous object's bytes
-				// Note that the previous items' data is in the NEXT index
-				// Edge case: When there is no next entry (ie is last item, ie )
-				/*
-				int previous_data_addr = get_next_valid_entry_addr(current_index);
-				// Now that we have its start, we want to see how large it used to be
-				int sizeof_previous_data = 0;
 				try {
-					sizeof_previous_data = get_obj_byte_length(get(get_next_valid_entry_addr(current_index)));
+					// If we haven't, do the compact on the index
+					Sanity.doCompact(this, current_index);
 				} catch (Exception e) {
-					// TODO: handle exception
+					e.printStackTrace();
 				}
-				int previous_data_end_addr = previous_data_addr + sizeof_previous_data;
-				int read_pointer = previous_data_end_addr -1; // -1 so we start reading the end of that block
-				p("Read pointer at previous data end addr: " + read_pointer);
-				*/
-
-				// Okay, so for the read pointer.
-				// If it's at the end of data (start of indexes), up until the first one, the read address will be the 
-				// last address of the last data object (next index)
-				// If it's the first one, (last index) just change the startofdata poitner to the next data object (previous index)
-				int prev_data_obj_start_addr = get_next_valid_entry_addr(current_index);
-				int prev_data_obj_size = 0;
-				try {
-					prev_data_obj_size = get_obj_byte_length(
-						get( // get the object at the prev data index
-							get_next_valid_entry_addr(current_index)
-							) 
-						); // and get its length
-				} catch (Exception e) {e.printStackTrace();}
-				p("Calculated previous object length " + prev_data_obj_size);
-				int prev_data_obj_end_addr = prev_data_obj_start_addr + prev_data_obj_size;
-				int read_pointer = prev_data_obj_end_addr;
-				p("Read pointer set to: " + read_pointer);
-
-				// Now we want to calculate the write pointer. This will be the address after the empty space which will be
-				// the address of the entry BEFORE it.
-				int next_addr_start = get_previous_valid_entry_addr(current_index);
-				int write_pointer = next_addr_start - 1; // Don't want to overwrite the first one
-				p("Write pointer at next_addr_start: " + write_pointer);
-				p("pointer diff: " + (write_pointer - read_pointer));
-				// Now finally, we need to know how far to go up. We want this to be the distance from the startofdata
-				// to the read_pointer
-				int length = read_pointer - startOfDataStorage();
-				p("Length to copy:: " + length);
-
-			
-
-				// Let's let it rip and see what happens
-				shift_array_bytes_right(data, read_pointer, write_pointer, length+1);
-				
-				int removed_obj_size = write_pointer - read_pointer;
-				// Update all the header entries. Since we are changing bytes towards the begnning of the data segment,
-				// those are going to be the HIGHER indexes, so update everything after us.
-				for(int entry = current_index+1; entry < this.entryCount(); entry++) {
-					if(getLocation(entry) != -1) // Skip any previously deleted entries
-						// Update the location to: what it currently has, + the removed object size. 
-						saveLocation(entry, getLocation(entry) + removed_obj_size);
-				}
-// FIXME
-				// Update the free storate start loc to where it was + the size of the rmoved obj
-				setStartOfDataStorage(startOfDataStorage() + removed_obj_size);
-				// add the index to our removed_indexes so we don't mess with that one again. 
-				removed_indexes.add(current_index);
-
-				/*
-				int start_loc = getLocation(null_index-1);  // Check if the first is deleted
-				int end_loc = getLocation(null_index+1); // check if the next one is too
-				int obj_size = end_loc - start_loc;
-	
-				// Now that we know how large it is, we want to move all the data before it to the right that much,
-				// and then update the indexes by the obj_size too
-	
-	
-				byte buffer;
-				for(int start = start_loc; start < end_loc; start++) {
-					// Shift all the data before us, into this. 
-					// So we're moving Some into where ring from String is
-					// Let's get the bytes
-					buffer = data[start];
-					data[]
-	
-				}
-				*/
 			}
 		}
-		// TODO complete this method (5 points)
-		//throw new UnsupportedOperationException();
 	}
 
 	/**

@@ -1,6 +1,7 @@
 package storage;
 
 import java.io.ByteArrayOutputStream;
+import java.io.LineNumberInputStream;
 import java.io.ObjectOutputStream;
 import java.security.cert.LDAPCertStoreParameters;
 import java.util.ArrayList;
@@ -44,10 +45,11 @@ public class tests {
 
     public static void dtest_compact() throws Exception{
         SlottedPage sp = new SlottedPage(0, 500);
-        sp.add("UAlbany");
-        sp.add("is");
-        sp.add("not");
-        sp.add("that");
+        // Overhead String object size = 7
+        sp.add("UAlbany"); //0: Size 14 <- data next
+        sp.add("is"); //1: Size 9 <- removed
+        sp.add("not"); //2: Size 10 <- data prev
+        sp.add("that"); //3: Size 11
         sp.add("great");
         sp.add("of a");
         sp.add("school");
@@ -66,15 +68,21 @@ public class tests {
         //     removed_obj_size = 0;
         // }
         // p("SIZE OF REMOVED::: " + removed_obj_size);
-        //p("Testing getting 2-1: " + sp.get(2-1));
-        p("Removing first...");
-        
+        //p("Testing getting 2-1: " + sp.get(2-1));        
+        p("SIZEOF REMOVED: " + toByteArray(sp.remove(0)).length);
+
+        sp.remove(6);
+        sp.remove(5);
         p("Compacting...");
-        p("SIZEOF REMOVED: " + toByteArray(sp.remove(1)).length);
         sp.compact();
         p((String)sp.get(0));
         p((String)sp.get(1));
         p((String)sp.get(2));
+        p((String)sp.get(3));
+        p((String)sp.get(4));
+        p((String)sp.get(5));
+        p((String)sp.get(6));
+        dump(sp);
         // for(Object o : sp) {
         //     p((String)o);
         // }
@@ -94,20 +102,42 @@ public class tests {
     public static void dump(SlottedPage sp) {
         
         StringBuilder sb = new StringBuilder();
-        int addr = 0;
-        sb.append(String.format(ANSI_RED + "|%3d|", 4 * addr));
-        for(int i = 0; i < sp.data.length; i++) {
-            if(i == ((sp.entryCount()+1) * Integer.BYTES))
-                sb.append(ANSI_RESET);
-            sb.append(String.format("%4d,", sp.data[i]));
-            if(((i+1) % 16) == 0 && i > 0)
+        int addr = (sp.entryCount() +1);
+        sb.append(String.format(ANSI_RED));
+        for(int i = 0; i < sp.entryCount()+1; i++) {
+                byte[] len = new byte[Integer.BYTES];
+                System.arraycopy(sp.data, i * Integer.BYTES, len, 0, Integer.BYTES);
+                if(i == 0) {
+                    sb.append(String.format("|0SZ| %19d", readInt(len)));
+                } else
+                    sb.append(String.format("|%3d| %19d",  i*4, readInt(len)));
+                if(((i+1) % 4) == 0 && i > 0)
                 sb.append("|\n");
-            if(((i+1) % 4) == 0 && i > 0)
-                sb.append(String.format("|%3d|", 4 * ++addr));
+        }
+        sb.append(String.format(ANSI_RESET));sb.append("\n\n");
+        boolean first = true;
+        int free = sp.startOfDataStorage();
+        p("Data storage starts at: " + free);
+        for(int i =((addr) * Integer.BYTES); i < sp.data.length; i++) {        
+            
+            if(((i+1) % 16) == 0 && i > 0)
+                sb.append("\n");
+
+            if((((i+1) % 4) == 0) || first)
+                sb.append(String.format("|%4d|", (4 * addr++)-1));
+            if(i == free){
+                sb.append(String.format("\u001b[34m%4d,\u001B[0m", sp.data[i]));
+            } else
+            sb.append(String.format("%4d,", sp.data[i]));
+
+            first = false;
         }
         p(sb.toString());
     }
-
+    protected static int readInt(byte[] data) {
+        return ((data[0]) << 24) + ((data[1] & 0xFF) << 16) + ((data[2] & 0xFF) << 8)
+                + (data[3] & 0xFF);
+    }
     public static void stats(SlottedPage sp) {
         p("Stats::: ");
         p("Page Size: " + sp.data.length + " bytes");
