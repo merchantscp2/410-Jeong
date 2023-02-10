@@ -259,11 +259,11 @@ public class SlottedPage implements Iterable<Object> {
 	 * @throws IndexOutOfBoundsException
 	 */
 	protected void compact() throws IOException {
-		// Go through each index
+		// Go through each index we want to shift from the data start to the data end. That means 
 		for(int current_index = entryCount()-1; current_index > 0 ; current_index--) {
 			// If we've already compacted it, skip it and make sure it's a removed index
 			if(getLocation(current_index) == -1 && !removed_indexes.contains(current_index))
-			{
+			{ 
 				try {
 					// If we haven't, do the compact on the index
 					Sanity.doCompact(this, current_index);

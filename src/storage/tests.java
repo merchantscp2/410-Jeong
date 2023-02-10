@@ -70,9 +70,10 @@ public class tests {
         // p("SIZE OF REMOVED::: " + removed_obj_size);
         //p("Testing getting 2-1: " + sp.get(2-1));        
         p("SIZEOF REMOVED: " + toByteArray(sp.remove(0)).length);
-
-        sp.remove(6);
+        // sp.remove(1); // FIXME Removing the last one and n other ones gives error. pointer diff is wrong. 
         sp.remove(5);
+        sp.remove(6);
+        sp.remove(2);
         p("Compacting...");
         sp.compact();
         p((String)sp.get(0));

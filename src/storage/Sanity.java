@@ -8,10 +8,11 @@ public class Sanity {
     public static void doCompact(SlottedPage sp, int current_index) throws Exception {
             p("Found deleted entry to compact at index " + current_index);
 
-            /* ==== Check Gemeral Edge Cases ==== */
+            /* ==== Check General Edge Cases ==== */
             // If it's the last index, its't the first item
-            if(current_index == sp.entryCount()) {
+            if(is_first_data_entry(sp, current_index)) {
                 // All we need to do is move the datastartpointer to the start of the the next data item (previous index)
+                if(debug) fill(sp.data, sp.startOfDataStorage(), get_previous_valid_entry_addr(sp, current_index)-1);
                 sp.setStartOfDataStorage(
                     get_previous_valid_entry_addr(sp, current_index)
                 );
@@ -91,7 +92,22 @@ public class Sanity {
             sp.setStartOfDataStorage(sp.startOfDataStorage() + removed_obj_size);
             // add the index to our removed_indexes so we don't mess with that one again. 
             sp.removed_indexes.add(current_index);
-}
+    }
+    protected static void fill(byte[] data, int start, int end) {
+        while(start <= end) {
+            data[start++] = -69;
+        }
+    }
+    protected static boolean is_first_data_entry(SlottedPage sp, int current_index) {
+        if(current_index == (sp.entryCount()-1)) return true;
+        else {
+            while((++current_index) >= sp.entryCount()-1) {
+                if(sp.getLocation(current_index) != -1)
+                    return true;
+            }
+        }
+        return false;
+    }
     protected int readInt(byte[] data) {
     return ((data[0]) << 24) + ((data[1] & 0xFF) << 16) + ((data[2] & 0xFF) << 8)
             + (data[3] & 0xFF);
@@ -105,7 +121,7 @@ public class Sanity {
 			// }
 			try {
 				next_address = sp.getLocation(current_index++);
-			} catch(Exception e) {}
+			} catch(Exception e) { break;}
 		} while(next_address == -1);
 		return next_address;
 	}
