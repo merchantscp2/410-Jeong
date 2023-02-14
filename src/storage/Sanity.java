@@ -108,6 +108,16 @@ public class Sanity {
         }
         return false;
     }
+    protected static boolean is_last_data_entry(SlottedPage sp, int current_index) {
+        if(current_index == 0) return true;
+        else {
+            while((--current_index) >= sp.entryCount()-1) {
+                if(sp.getLocation(current_index) != -1)
+                    return true;
+            }
+        }
+        return false;
+    }
     protected int readInt(byte[] data) {
     return ((data[0]) << 24) + ((data[1] & 0xFF) << 16) + ((data[2] & 0xFF) << 8)
             + (data[3] & 0xFF);
