@@ -1,13 +1,8 @@
 package storage;
-
 import java.io.ByteArrayOutputStream;
-import java.io.LineNumberInputStream;
 import java.io.ObjectOutputStream;
-import java.security.cert.LDAPCertStoreParameters;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import org.junit.Test;
 import java.util.Iterator;
 
 
@@ -16,9 +11,8 @@ public class tests {
         dtest_compact();
         //utest_compact();
         //test_shift();
-
-        
     }
+
     public static void test_shift() {
         byte[] b_arr = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
         p(Arrays.toString(b_arr));
@@ -56,26 +50,26 @@ public class tests {
         //stats(sp);
         
         dump(sp);
-        // FIXMEEEEE
-		// int removed_obj_size;
-        // try {
-        //     // This is mad ugly, but we want to read the previous object to get its length
-        //     // Then subtract the start of the next object. This is how much we can compact
-        //     // p("Previous item is " + (String)get(current_index-1));
-        //     removed_obj_size = ((toByteArray(sp.remove(0)).length));
-            
-        // } catch(Exception e) { // If soemething happens, do this for now
-        //     removed_obj_size = 0;
-        // }
-        // p("SIZE OF REMOVED::: " + removed_obj_size);
-        //p("Testing getting 2-1: " + sp.get(2-1));        
-        p("SIZEOF REMOVED: " + toByteArray(sp.remove(0)).length);
+              
+        //p("SIZEOF REMOVED: " + toByteArray(sp.remove(0)).length);
         // sp.remove(1); // FIXME Removing the last one and n other ones gives error. pointer diff is wrong. 
-        sp.remove(5);
-        sp.remove(6);
-        sp.remove(2);
+        // sp.remove(5);
+        // sp.remove(6);
+        // sp.remove(2);
+        // sp.remove(0);
+        // sp.remove(0);
+        // sp.remove(1);
+        p("SIZEOF REMOVED: " + toByteArray(sp.remove(0)).length);
+        p("SIZEOF REMOVED: " + toByteArray(sp.remove(1)).length);
+
+        // If there are multiple ones that have been removed consecutively from the back,
+        // If we remove one before the last, we need to add the next ones to the removed_indexes so that
+        // We don't run it again when we don't need ti
         p("Compacting...");
         sp.compact();
+        p("Adding...");
+        sp.add("SIIIIIKE");
+        p("Values");
         p((String)sp.get(0));
         p((String)sp.get(1));
         p((String)sp.get(2));
@@ -83,6 +77,7 @@ public class tests {
         p((String)sp.get(4));
         p((String)sp.get(5));
         p((String)sp.get(6));
+        // p((String)sp.get(7));
         dump(sp);
         // for(Object o : sp) {
         //     p((String)o);

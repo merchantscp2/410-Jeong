@@ -53,14 +53,14 @@ public class Sanity {
              */
             p("\n\n ==== Write Pointer ====");
             int write_pointer = -1;
-            if(current_index == 0) { // Set it to the end of the array (minus the ds field)
+            if(is_last_data_entry(sp, current_index)) { // Set it to the end of the array (minus the ds field)
                 write_pointer = (sp.data.length - Integer.BYTES)-1;
+                // length = (sp.data.length - write_pointer) + 1;
                 p("\tFound end of array as write addr since first index");
             } else { // if it's not the end of the data
                 int next_obj_index = get_previous_valid_entry_index(sp, current_index);
                 int next_obj_address = sp.getLocation(next_obj_index);
                 write_pointer = next_obj_address - 1; // Don't want to overwrite the first one
-
                 p("\tNext object index " + next_obj_index);
                 p("\tNext object adddress " + next_obj_address);
             }
@@ -70,9 +70,7 @@ public class Sanity {
             // to the read_pointer
             int length = (read_pointer - sp.startOfDataStorage()) + 1;
             p("Length to copy:: " + length);
-
-        
-
+            
             // Let's let it rip and see what happens
             shift_array_bytes_right(sp.data, read_pointer, write_pointer, length);
             
@@ -93,6 +91,10 @@ public class Sanity {
             // add the index to our removed_indexes so we don't mess with that one again. 
             sp.removed_indexes.add(current_index);
     }
+
+    /*
+     * For debug purposes so that we can see what's been removed
+     */
     protected static void fill(byte[] data, int start, int end) {
         while(start <= end) {
             data[start++] = -69;
@@ -108,15 +110,21 @@ public class Sanity {
         }
         return false;
     }
+    // last data is first index. only want the non-deleted ones. 
+    // FIXME It only removes the first one (9 bytes) instead of both..
+    // MAYBE RETURN A DATASTRUCTURE THAT ADDS THE SIZE AT EACH INDEX
     protected static boolean is_last_data_entry(SlottedPage sp, int current_index) {
-        if(current_index == 0) return true;
-        else {
-            while((--current_index) >= sp.entryCount()-1) {
-                if(sp.getLocation(current_index) != -1)
-                    return true;
+        boolean val = false;
+        while((--current_index) >= 0) { // go to the first. 
+            // val is true (it is the last)
+            // Go forward one
+            // If the location is not already in the removed
+            // If it's -1: Add it to the removed_indexes
+            if(val = sp.getLocation(current_index) == -1 && !sp.removed_indexes.contains(current_index)) {
+                sp.removed_indexes.add(current_index);
             }
         }
-        return false;
+        return val;
     }
     protected int readInt(byte[] data) {
     return ((data[0]) << 24) + ((data[1] & 0xFF) << 16) + ((data[2] & 0xFF) << 8)

@@ -117,6 +117,9 @@ public class FileManager implements StorageManager<Long, Object> {
 	public Object put(int fileID, Long location, Object o) throws IOException, InvalidLocationException {
 		// SlottedPage p = page(fileID, first(location)); // the page specified by the 1st half of the location
 		// TODO complete this method (10 points)
+
+		SlottedPageFile pageFile = id2file.get(fileID);
+
 		throw new UnsupportedOperationException();
 	}
 
