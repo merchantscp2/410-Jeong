@@ -122,8 +122,12 @@ public class SlottedPageTest {
 			// e.printStackTrace();
 		}
 		ArrayList<Object> l = list(p.iterator());
+		System.out.println("ArrList l count (pre remove): " + l.size());
+		System.out.println("Slotted Page p count (pre remove): " + p.entryCount());
 		int index = 3;
 		Object o = l.set(index, null);
+		System.out.println("ArrList l count (post remove): " + l.size());
+		System.out.println("Slotted Page p count (post remove): " + p.entryCount());
 		try {
 			p.remove(index);
 		} catch (IndexOutOfBoundsException | IOException e) {
@@ -131,9 +135,22 @@ public class SlottedPageTest {
 		}
 		try {
 			l.add(o);
+			
+		System.out.println("ArrList l count (after add): " + l.size());
+		System.out.println("Slotted Page p count (after add): " + p.entryCount());
 			p.add(o);
 		} catch (IOException | OverflowException e) {
 			e.printStackTrace();
+		}
+		System.out.println("l.size: " + l.size());
+		System.out.println("p.entrycount: " + p.entryCount());
+		for(int i = 0; i < l.size(); i++)
+		{
+			System.out.println(l.get(i));
+		}
+		for(int i = 0; i < p.entryCount(); i++)
+		{
+			System.out.println(p.get(i));
 		}
 		assertEquals(l.size(), p.entryCount());
 		for (int i = 0; i < l.size(); i++)

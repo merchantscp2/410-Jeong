@@ -115,12 +115,33 @@ public class FileManager implements StorageManager<Long, Object> {
 	 */
 	@Override
 	public Object put(int fileID, Long location, Object o) throws IOException, InvalidLocationException {
-		// SlottedPage p = page(fileID, first(location)); // the page specified by the 1st half of the location
-		// TODO complete this method (10 points)
+		// Check for valid values
+		if(fileID < 0 || first(location) < 0 || second(location) < 0) {
+			throw new InvalidLocationException();
+		}
 
-		SlottedPageFile pageFile = id2file.get(fileID);
+		// Try to fetch a slotted page and old object placeholder
+		SlottedPage p = page(fileID, first(location));
+		Object old = null;
 
-		throw new UnsupportedOperationException();
+		// If there is no slotted page, create a new one
+		if(p == null) {
+			p = new SlottedPage(first(location), slottedPageSize);
+		}
+
+		// Store the object and cache the old object
+		try {
+			p.put(second(location), o);
+			old = p.get(second(location));
+		} catch (Exception e) {
+			throw new InvalidLocationException();
+		}
+
+		// Write back to file
+		updated(p, fileID);
+		
+		// Return cachced
+		return old;
 	}
 
 	/**
@@ -138,9 +159,18 @@ public class FileManager implements StorageManager<Long, Object> {
 	 */
 	@Override
 	public Object get(int fileID, Long location) throws IOException, InvalidLocationException {
-		// SlottedPage p = page(fileID, first(location)); // the page specified by the 1st half of the location
-		// TODO complete this method (5 points)
-		throw new UnsupportedOperationException();
+		if(fileID < 0 || first(location) < 0 || second(location) < 0) {
+			throw new InvalidLocationException();
+		}
+		
+		SlottedPage p = page(fileID, first(location)); // the page specified by the 1st half of the location
+		Object ret;
+		try {
+			ret = p.get(second(location));
+		} catch (Exception e) {
+			throw new InvalidLocationException();
+		}
+		return ret;
 	}
 
 	/**
@@ -160,8 +190,22 @@ public class FileManager implements StorageManager<Long, Object> {
 	@Override
 	public Object remove(int fileID, Long location) throws IOException, InvalidLocationException {
 		// SlottedPage p = page(fileID, first(location)); // the page specified by the 1st half of the location
-		// TODO complete this method (5 points)
-		throw new UnsupportedOperationException();
+		if(fileID < 0 || first(location) < 0 || second(location) < 0) {
+			throw new InvalidLocationException();
+		}
+		
+		SlottedPage p = page(fileID, first(location)); // the page specified by the 1st half of the location
+		Object ret;
+		try {
+			ret = p.get(second(location));
+			p.remove(second(location));
+		} catch (Exception e) {
+			throw new InvalidLocationException();
+		}
+		
+		updated(p, fileID);
+
+		return ret;
 	}
 
 	/**
@@ -186,8 +230,61 @@ public class FileManager implements StorageManager<Long, Object> {
 	 */
 	@Override
 	public Iterator<Object> iterator(int fileID) {
-		// TODO complete this method (5 points)
-		throw new UnsupportedOperationException();
+		class FileManagerIterator<T> implements Iterator {
+			// Here's what we're going to do.
+			// Store the fileID and pageID
+			int pid = 0;
+			int fid = 0;
+
+			// Keep track of the file manager and the current page
+			SlottedPage sp;
+			FileManager fm;
+			Iterator spi;
+
+			// Here's how it works
+			// File manager has a bunch of SottedPageFiles
+			// Each SlottedPageFile has multiple SlottedPages
+			// Each SlottedPage has multiple objects and an iterator for them
+
+			public FileManagerIterator(FileManager fm, int fid) {
+				try {
+					// Grab the first slotted page
+					sp = fm.id2file.get(fid).get(pid);	
+					// Grab its iterator
+					spi = sp.iterator();
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println("ErROR 1");
+				}
+				// set the fileid
+				this.fid = fid;
+			}
+
+			@Override
+			public boolean hasNext() {
+				// If the current page doesn't have a next item
+				if(!spi.hasNext()) {
+					// See if we can fetch tht next page
+					try {
+						// increment the pid
+						sp = fm.id2file.get(fid).get(++pid);
+						spi = sp.iterator();
+					} catch (Exception e) {
+						// We didn't get the next one
+						return false;
+					}
+				}
+				if(spi.hasNext() && sp != null) {
+					return true;
+				} else return false;
+			}
+
+			@Override
+			public Object next() {
+				return spi.next();
+			}
+		}
+		return new FileManagerIterator<Object>(this, fileID);
 	}
 
 	/**

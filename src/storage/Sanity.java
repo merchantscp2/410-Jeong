@@ -1,7 +1,7 @@
 package storage;
 
 public class Sanity {
-    private static boolean debug = true;
+    private static boolean debug = false;
     private static void p(String s) { if(debug) System.out.println(s);}
 
 	
@@ -70,7 +70,7 @@ public class Sanity {
             // to the read_pointer
             int length = (read_pointer - sp.startOfDataStorage()) + 1;
             p("Length to copy:: " + length);
-            
+
             // Let's let it rip and see what happens
             shift_array_bytes_right(sp.data, read_pointer, write_pointer, length);
             
@@ -82,7 +82,7 @@ public class Sanity {
                     // Update the location to: what it currently has, + the removed object size. 
                     sp.saveLocation(entry, sp.getLocation(entry) + removed_obj_size);
             }
-// FIXME
+
             p("Current startOfDatStorage Addr: " +sp.startOfDataStorage());
             p("Adding: " + removed_obj_size);
             p("New storage start:" + (sp.startOfDataStorage() + removed_obj_size));
@@ -96,10 +96,17 @@ public class Sanity {
      * For debug purposes so that we can see what's been removed
      */
     protected static void fill(byte[] data, int start, int end) {
-        while(start <= end) {
-            data[start++] = -69;
-        }
+        if(debug) 
+            while(start <= end)
+                data[start++] = -69;
     }
+
+    /**
+     * 
+     * @param sp
+     * @param current_index
+     * @return
+     */
     protected static boolean is_first_data_entry(SlottedPage sp, int current_index) {
         if(current_index == (sp.entryCount()-1)) return true;
         else {
@@ -110,9 +117,13 @@ public class Sanity {
         }
         return false;
     }
-    // last data is first index. only want the non-deleted ones. 
-    // FIXME It only removes the first one (9 bytes) instead of both..
-    // MAYBE RETURN A DATASTRUCTURE THAT ADDS THE SIZE AT EACH INDEX
+    
+    /**
+     * 
+     * @param sp
+     * @param current_index
+     * @return
+     */
     protected static boolean is_last_data_entry(SlottedPage sp, int current_index) {
         boolean val = false;
         while((--current_index) >= 0) { // go to the first. 
@@ -126,10 +137,13 @@ public class Sanity {
         }
         return val;
     }
-    protected int readInt(byte[] data) {
-    return ((data[0]) << 24) + ((data[1] & 0xFF) << 16) + ((data[2] & 0xFF) << 8)
-            + (data[3] & 0xFF);
-}
+
+    /**
+     * 
+     * @param sp
+     * @param current_index
+     * @return
+     */
     protected static int get_next_valid_entry_addr(SlottedPage sp, int current_index) {
 		// Initialize the next address var
 		int next_address = -1;
@@ -144,6 +158,12 @@ public class Sanity {
 		return next_address;
 	}
 
+    /**
+     * 
+     * @param sp
+     * @param current_index
+     * @return
+     */
     protected static int get_next_valid_entry_index(SlottedPage sp, int current_index) {
         // Initialize the next address var
         int next_index = -1;
@@ -158,6 +178,12 @@ public class Sanity {
         return next_index;
     }
 
+    /**
+     * 
+     * @param sp
+     * @param current_index
+     * @return
+     */
     protected static int get_previous_valid_entry_index(SlottedPage sp, int current_index) {
         // Initialize the next address var
         int prev_index = -1;
@@ -172,6 +198,12 @@ public class Sanity {
         return prev_index;
     }
 
+    /**
+     * 
+     * @param sp
+     * @param current_index
+     * @return
+     */
 	protected static int get_previous_valid_entry_addr(SlottedPage sp, int current_index) {
 		int previous_address = -1;
 		do { // If we reach the end of the indexes
@@ -184,6 +216,7 @@ public class Sanity {
 		} while(previous_address == -1);
 		return previous_address;
 	}
+
 	/**
      * Shift array bytes to the right to fill in removed data
      * @param arr The array of data
@@ -202,6 +235,13 @@ public class Sanity {
             read_pointer--;
         }
     }
+
+    /**
+     * 
+     * @param sp
+     * @param index
+     * @return
+     */
 	public static int get_obj_byte_length_at_addr(SlottedPage sp, int index) {
 		int len;
         try {
