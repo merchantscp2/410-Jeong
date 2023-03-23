@@ -250,7 +250,7 @@ public class FileManager implements StorageManager<Long, Object> {
 				try {
 					// Grab the first slotted page
 					//sp = fm.id2file.get(fid).get(pid);	
-					sp = page(fileID, fid);
+					sp = page(fileID, pid);
 					// Grab its iterator
 					spi = sp.iterator();
 					// tests.p("SP Entry Count: " + sp.entryCount());
