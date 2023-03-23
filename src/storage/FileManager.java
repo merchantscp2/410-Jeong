@@ -249,13 +249,14 @@ public class FileManager implements StorageManager<Long, Object> {
 			public FileManagerIterator(FileManager fm, int fid) {
 				try {
 					// Grab the first slotted page
-					sp = fm.id2file.get(fid).get(pid);	
+					//sp = fm.id2file.get(fid).get(pid);	
+					sp = page(fileID, fid);
 					// Grab its iterator
 					spi = sp.iterator();
+					// tests.p("SP Entry Count: " + sp.entryCount());
 				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("ErROR 1");
 				}
+				// tests.p("Slotted Pages: " + fm.id2file.size());
 				// set the fileid
 				this.fid = fid;
 			}
@@ -267,11 +268,9 @@ public class FileManager implements StorageManager<Long, Object> {
 					// See if we can fetch tht next page
 					try {
 						// increment the pid
-						sp = fm.id2file.get(fid).get(++pid);
+						sp = page(fid, ++pid);
 						spi = sp.iterator();
 					} catch (Exception e) {
-						// We didn't get the next one
-						return false;
 					}
 				}
 				if(spi.hasNext() && sp != null) {
